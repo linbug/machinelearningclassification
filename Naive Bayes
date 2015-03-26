@@ -1,0 +1,72 @@
+import csv
+import numpy
+import scipy
+import matplotlib.pyplot as plt
+from sklearn import preprocessing
+
+from sklearn import neighbors
+from sklearn.cross_validation import train_test_split
+from sklearn import metrics
+
+from sklearn.naive_bayes import GaussianNB
+
+from sklearn import cross_validation
+from sklearn.grid_search import GridSearchCV
+
+filename = "wdbc.csv"
+fileOpen = open(filename, "rU")
+csvData = csv.reader(fileOpen)
+dataList = list(csvData)
+dataArray = numpy.array(dataList)
+
+X = dataArray[:,2:32].astype(float)# index out rest of the data
+y = dataArray[:, 1] # diagnosis column
+
+le = preprocessing.LabelEncoder()
+le.fit(y)
+yTransformed = le.transform(y)
+
+#splits training dataset 25% for testing
+XTrain, XTest, yTrain, yTest = train_test_split(X, yTransformed)
+
+# declare and train the model
+nbmodel = GaussianNB().fit(XTrain, yTrain)
+predicted = nbmodel.predict(XTest)
+
+# confusion matrix
+mat = metrics.confusion_matrix(yTest, predicted)
+print mat
+
+# print validation metrics
+
+print metrics.classification_report(yTest, predicted)
+print metrics.accuracy_score(yTest, predicted)
+
+# k- fold validation
+nbscores = cross_validation.cross_val_score(nbmodel, XTrain, yTrain, cv = 5)
+print nbscores
+print "Mean f scores nbscores", nbscores.mean()
+print "SD of scores nbscores", nbscores.std()
+
+meansNB = []
+sdsNB = []
+
+ks = range (2, 21)
+
+for k in ks:
+  nbscores = cross_validation.cross_val_score(nbmodel, XTrain,
+                                                yTrain, cv=k)
+  meansNB.append(nbscores.mean())
+  sdsNB.append(nbscores.std())
+
+plt.plot(ks, meansNB, label="NB mean accuracy", color="purple")
+plt.legend(loc=3)
+plt.ylim(0.5,1)
+plt.title("Accuracy mean with increasing k")
+plt.show()
+
+plt.plot(ks, sdsNB, label="NB sd accuracy", color="blue")
+plt.legend(loc=3)
+plt.ylim(0, 0.1)
+plt.title("Accuracy standard deviations with Increasing K")
+plt.show()
